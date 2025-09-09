@@ -239,35 +239,33 @@ def invoke_claude_model(bedrock, prompt):
         - Top-p: Controls diversity of responses (0.9 is a balanced setting)
     """
     # Step 1: Select model and set parameters
-    # Using Claude v2 for comprehensive text generation capabilities
-    model_id = "anthropic.claude-v2"  # Amazon Bedrock model identifier
+    # Using Claude 3 Opus for comprehensive text generation capabilities
+    model_id = "model_id = "us.anthropic.claude-3-opus-20240229-v1:0""  # Amazon Bedrock model identifier
 
     # Step 2: Construct the complete prompt with instructions
-    # The prompt follows Claude's required Human/Assistant format
-    # and includes specific instructions for security report generation
+    # Claude 3.5 uses the new messages API format
     request_body = {
-        "prompt": (
-            # Begin with Claude's expected format
-            "\n\nHuman: You are a cybersecurity expert analyzing AWS security findings. "
-            "Generate a concise, professional security report based on the following "
-            f"findings:\n\n{prompt}\n\n"
-            # Specific instructions for report structure
-            "Your report should include:\n"
-            "1. An executive summary of the security posture\n"
-            "2. Analysis of the most critical findings\n"
-            "3. Clear, actionable recommendations\n"
-            "4. Compliance implications\n\n"
-            # Style guidance for the report
-            "Format the report with clear headings and concise language suitable for both "
-            "technical and non-technical stakeholders.\n\n"
-            # Claude's expected assistant prefix
-            "Assistant: I'll analyze the findings and provide a comprehensive security "
-            "report.\n\n"
-        ),
-        # Model configuration parameters
-        "max_tokens_to_sample": 4096,  # Maximum response length (roughly 3000 words)
-        "temperature": 0.7,  # Balances creativity and consistency
-        "top_p": 0.9,  # Controls diversity of word selection
+        "anthropic_version": "bedrock-2023-05-31",
+        "max_tokens": 4096,
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "messages": [
+            {
+                "role": "user",
+                "content": (
+                    "You are a cybersecurity expert analyzing AWS security findings. "
+                    "Generate a concise, professional security report based on the following "
+                    f"findings:\n\n{prompt}\n\n"
+                    "Your report should include:\n"
+                    "1. An executive summary of the security posture\n"
+                    "2. Analysis of the most critical findings\n"
+                    "3. Clear, actionable recommendations\n"
+                    "4. Compliance implications\n\n"
+                    "Format the report with clear headings and concise language suitable for both "
+                    "technical and non-technical stakeholders."
+                )
+            }
+        ]
     }
 
     # Step 3: Call the Bedrock API
@@ -306,9 +304,13 @@ def extract_narrative_claude(response):
         process isn't blocked.
     """
     try:
-        # For Claude model, the generated text is in the "completion" field
+        # For Claude 3.5 model, the generated text is in the "content" field of the first message
         # We strip any extra whitespace to ensure clean formatting
-        narrative = response.get("completion", "")
+        content = response.get("content", [])
+        if content and len(content) > 0:
+            narrative = content[0].get("text", "")
+        else:
+            narrative = response.get("completion", "")  # Fallback for older format
 
         # Apply any additional formatting or post-processing here if needed
         # For example, we might want to add a title, fix formatting issues, etc.

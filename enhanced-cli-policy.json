@@ -1,0 +1,77 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "CloudWatchLogsAccess",
+            "Effect": "Allow",
+            "Action": [
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:GetLogEvents",
+                "logs:FilterLogEvents"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "BedrockReadAccess",
+            "Effect": "Allow",
+            "Action": [
+                "bedrock:ListFoundationModels",
+                "bedrock:GetFoundationModel",
+                "bedrock:GetModelInvocationLoggingConfiguration"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "SecurityHubReadAccess",
+            "Effect": "Allow",
+            "Action": [
+                "securityhub:GetEnabledStandards",
+                "securityhub:DescribeStandards",
+                "securityhub:GetFindings"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "IAMReadAccess",
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetUser",
+                "iam:GetRole",
+                "iam:ListAttachedRolePolicies",
+                "iam:ListRolePolicies"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "CloudFormationReadAccess",
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:DescribeStacks",
+                "cloudformation:DescribeStackResources",
+                "cloudformation:ListStacks"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "SESReadAccess",
+            "Effect": "Allow",
+            "Action": [
+                "ses:GetSendQuota",
+                "ses:GetSendStatistics",
+                "ses:ListVerifiedEmailAddresses"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "LambdaReadAccess",
+            "Effect": "Allow",
+            "Action": [
+                "lambda:GetFunction",
+                "lambda:ListFunctions",
+                "lambda:GetFunctionConfiguration"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
