@@ -125,10 +125,17 @@ Resources:
               Service: lambda.amazonaws.com  # Only Lambda can use this role
             Action: sts:AssumeRole           # Allow Lambda to assume this role
       
-      # Attach AWS managed policy for basic Lambda execution
-      # This gives permission to write logs to CloudWatch
+      # Attach AWS managed policies for Lambda execution and Bedrock model invocation.
+      # - AWSLambdaBasicExecutionRole: write CloudWatch Logs
+      # - AWSMarketplaceFullAccess: required to invoke third-party Bedrock models
+      #   (e.g. Anthropic Claude) that are delivered via AWS Marketplace. Without
+      #   this, invoke_model silently returns an access error and the narrative
+      #   falls back to the non-AI fallback. Scope down to AmazonBedrockFullAccess
+      #   or minimal aws-marketplace:View*/Subscribe* actions if your threat model
+      #   requires tighter permissions.
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSMarketplaceFullAccess
       
       # Custom policies for our specific permissions
       Policies:
