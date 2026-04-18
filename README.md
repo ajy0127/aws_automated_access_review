@@ -116,6 +116,12 @@ Perfect for GRC professionals managing SOC 2 Type 2 and similar compliance frame
    - `--schedule`: Schedule expression for running the review (default: rate(30 days))
    - `--profile`: AWS CLI profile to use for credentials (default: uses default profile)
 
+   **Windows users**: a PowerShell port of the deploy path is provided at `scripts/deploy.ps1`. Run it from PowerShell instead of the bash script:
+   ```powershell
+   ./scripts/deploy.ps1 -Email your.email@example.com -Profile your-aws-profile
+   ```
+   The other helper scripts (`check_aws_creds.sh`, `run_report.sh`, `cleanup.sh`, etc.) remain bash-only — run those from WSL or Git Bash.
+
 5. **⚠️ IMPORTANT: Verify your email address by clicking the link in the verification email sent by AWS SES before proceeding!**
 
 6. Run an immediate access review report:
