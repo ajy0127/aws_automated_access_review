@@ -74,6 +74,25 @@ Perfect for GRC professionals managing SOC 2 Type 2 and similar compliance frame
   - Amazon SES (with verified email for receiving reports)
   - Amazon Bedrock (with access to Claude model)
 
+### IAM permissions for the deploying user
+
+The identity running `scripts/deploy.sh` needs to create IAM roles, Lambda, S3, CFN, EventBridge, SES, and Bedrock resources, and subscribe to Bedrock models through Marketplace. If you hit `AccessDenied` mid-deploy, one of these is missing. The minimum set of AWS managed policies:
+
+| Policy | What it's for |
+| ------ | ------------- |
+| `AWSCloudFormationFullAccess` | Create/update the stack itself |
+| `IAMFullAccess` | Create the Lambda execution role |
+| `AWSLambda_FullAccess` | Create/update the Lambda function |
+| `AmazonS3FullAccess` | Create the report bucket |
+| `AmazonEventBridgeFullAccess` | Create the scheduled rule |
+| `AmazonSESFullAccess` | Verify the sender/recipient identity |
+| `AmazonBedrockFullAccess` | Invoke the AI model |
+| `AWSMarketplaceFullAccess` | Subscribe to third-party Bedrock models (Anthropic) |
+
+These are the AWS-managed "FullAccess" policies for simplicity. In a production account you'd usually scope each one down to just the actions and resources this tool actually uses (e.g. `cloudformation:*` limited to the stack name, `s3:*` limited to the report bucket ARN). Start with the FullAccess set to get a first deploy working, then tighten.
+
+The **Lambda execution role** created by the CloudFormation template gets its own set of permissions — you don't need to configure those separately. It attaches `AWSLambdaBasicExecutionRole` and `AWSMarketplaceFullAccess` as managed policies plus a scoped inline policy covering S3/SES/IAM read/Bedrock invoke.
+
 ## Deployment Guide
 
 End-to-end deploy takes about 10 minutes. Follow each step in order — don't skip. A PowerShell variant of step 6 is in the [Windows section](#windows-deployment) below.
