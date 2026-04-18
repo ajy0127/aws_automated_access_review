@@ -173,10 +173,11 @@ The Lambda runs synchronously, writes a CSV to the report bucket, and emails you
 ### Step 9. (Optional) Tear it all down
 
 ```bash
-./scripts/cleanup.sh --profile your-aws-profile
+./scripts/cleanup.sh --profile your-aws-profile              # interactive confirmation
+./scripts/cleanup.sh --profile your-aws-profile --yes        # non-interactive (CI/automation)
 ```
 
-Deletes the CFN stack, empties the report bucket, and removes the Lambda and EventBridge rule.
+Empties the report bucket first (CloudFormation can't delete a non-empty S3 bucket), then deletes the CFN stack and everything it owns: Lambda function, IAM role, EventBridge rule, and the bucket itself. Waits for the stack deletion to complete before exiting.
 
 ---
 
