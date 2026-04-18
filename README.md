@@ -185,6 +185,11 @@ Empties the report bucket first (CloudFormation can't delete a non-empty S3 buck
 
 Only `deploy.ps1` is ported. The other helper scripts are bash-only; run them from **WSL** or **Git Bash**.
 
+**Bash-on-Windows prerequisites:** the `.sh` scripts auto-detect `aws.exe` when `aws` isn't on PATH, strip stray `\r` from AWS CLI output, and avoid `/dev/null`. But a few host-side pieces still need to be in place before you run them from WSL or Git Bash:
+
+- **Line endings stay LF.** The repo's `.gitattributes` enforces LF on `*.sh`; don't override with `core.autocrlf=true`. If a script fails with `$'\r': command not found`, re-normalize with `sed -i 's/\r$//' scripts/*.sh`.
+- **`zip` must be installed** if you run `deploy.sh` from WSL (`sudo apt install zip`). If `zip` isn't available, use `scripts/deploy.ps1` from PowerShell instead.
+
 ```powershell
 ./scripts/deploy.ps1 `
   -Email you@example.com `

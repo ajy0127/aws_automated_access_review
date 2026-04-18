@@ -58,9 +58,20 @@ if [ -n "$AWS_PROFILE" ]; then
   echo "Using AWS profile: $AWS_PROFILE"
 fi
 
+# Detect the AWS CLI binary. On Windows/WSL it is installed as aws.exe and
+# `command -v aws` returns nothing; fall through to aws.exe in that case.
+if command -v aws &> /dev/null; then
+  AWS_CMD="aws"
+elif command -v aws.exe &> /dev/null; then
+  AWS_CMD="aws.exe"
+else
+  echo "Error: AWS CLI is not installed. Please install it first."
+  exit 1
+fi
+
 # Verify AWS credentials are valid
 echo "Verifying AWS credentials..."
-if ! aws sts get-caller-identity $AWS_CMD_PROFILE --region "$REGION" &>/dev/null; then
+if ! $AWS_CMD sts get-caller-identity $AWS_CMD_PROFILE --region "$REGION" &>/dev/null; then
   echo "Error: Unable to validate AWS credentials. Check your AWS configuration or profile."
   exit 1
 fi
@@ -87,7 +98,7 @@ cd ..
 
 # Create/Update the CloudFormation stack
 echo "Deploying CloudFormation stack '$STACK_NAME' to region '$REGION'..."
-aws cloudformation deploy \
+$AWS_CMD cloudformation deploy \
   --template-file templates/access-review-real.yaml \
   --stack-name "$STACK_NAME" \
   --parameter-overrides \
@@ -99,16 +110,18 @@ aws cloudformation deploy \
   --region "$REGION" \
   $AWS_CMD_PROFILE
 
-# Get the bucket name from the stack outputs
+# Get the bucket name from the stack outputs. Strip trailing \r that Windows
+# aws.exe attaches to --output text results — it corrupts the ARN when passed
+# to subsequent commands (ValidationException).
 echo "Getting S3 bucket name from CloudFormation stack..."
-BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" $AWS_CMD_PROFILE --query "Stacks[0].Outputs[?OutputKey=='AccessReviewS3Bucket'].OutputValue" --output text)
+BUCKET_NAME=$($AWS_CMD cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" $AWS_CMD_PROFILE --query "Stacks[0].Outputs[?OutputKey=='AccessReviewS3Bucket'].OutputValue" --output text | tr -d '\r')
 
 echo "Getting Lambda function ARN from CloudFormation stack..."
-LAMBDA_ARN=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" $AWS_CMD_PROFILE --query "Stacks[0].Outputs[?OutputKey=='AccessReviewLambdaArn'].OutputValue" --output text)
+LAMBDA_ARN=$($AWS_CMD cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" $AWS_CMD_PROFILE --query "Stacks[0].Outputs[?OutputKey=='AccessReviewLambdaArn'].OutputValue" --output text | tr -d '\r')
 
 # Update Lambda function code
 echo "Updating Lambda function code..."
-aws lambda update-function-code \
+$AWS_CMD lambda update-function-code \
   --function-name "$LAMBDA_ARN" \
   --zip-file fileb://lambda_function.zip \
   --region "$REGION" \

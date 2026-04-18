@@ -35,17 +35,30 @@ if [ -n "$AWS_PROFILE" ]; then
   echo "Using AWS profile: $AWS_PROFILE"
 fi
 
+# Detect the AWS CLI binary. On Windows/WSL it is installed as aws.exe and
+# `command -v aws` returns nothing; fall through to aws.exe in that case.
+if command -v aws &> /dev/null; then
+  AWS_CMD="aws"
+elif command -v aws.exe &> /dev/null; then
+  AWS_CMD="aws.exe"
+else
+  echo "Error: AWS CLI is not installed. Please install it first."
+  exit 1
+fi
+
 # Verify AWS credentials are valid
 echo "Verifying AWS credentials..."
-if ! aws sts get-caller-identity $AWS_CMD_PROFILE --region "$REGION" &>/dev/null; then
+if ! $AWS_CMD sts get-caller-identity $AWS_CMD_PROFILE --region "$REGION" &>/dev/null; then
   echo "Error: Unable to validate AWS credentials. Check your AWS configuration or profile."
   exit 1
 fi
 echo "AWS credentials verified."
 
-# Get Lambda function name from CloudFormation stack
+# Get Lambda function name from CloudFormation stack.
+# Pipe through `tr -d '\r'` because Windows aws.exe appends \r to --output text
+# values, which corrupts the ARN when passed to subsequent commands.
 echo "Getting Lambda function ARN from CloudFormation stack..."
-LAMBDA_ARN=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" $AWS_CMD_PROFILE --query "Stacks[0].Outputs[?OutputKey=='AccessReviewLambdaArn'].OutputValue" --output text)
+LAMBDA_ARN=$($AWS_CMD cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" $AWS_CMD_PROFILE --query "Stacks[0].Outputs[?OutputKey=='AccessReviewLambdaArn'].OutputValue" --output text | tr -d '\r')
 
 if [ -z "$LAMBDA_ARN" ]; then
   echo "Error: Could not retrieve Lambda function ARN from stack outputs."
@@ -54,14 +67,15 @@ fi
 
 echo "Found Lambda function: $LAMBDA_ARN"
 
-# Invoke Lambda function
+# Invoke Lambda function. Write the response body to response.json instead of
+# /dev/null because /dev/null does not exist on native Windows bash.
 echo "Invoking Lambda function to generate access review report..."
-aws lambda invoke \
+$AWS_CMD lambda invoke \
   --function-name "$LAMBDA_ARN" \
   --invocation-type Event \
   --region "$REGION" \
   $AWS_CMD_PROFILE \
-  /dev/null
+  response.json
 
 echo "Lambda function invoked successfully!"
 echo "The access review report will be generated and sent to the configured email address."

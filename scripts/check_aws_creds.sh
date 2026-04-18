@@ -33,15 +33,20 @@ fi
 echo "Checking AWS credentials..."
 echo "Region: $REGION"
 
-# Check if AWS CLI is installed
-if ! command -v aws &> /dev/null; then
+# Detect the AWS CLI binary. On Windows/WSL it is installed as aws.exe and
+# `command -v aws` returns nothing; fall through to aws.exe in that case.
+if command -v aws &> /dev/null; then
+  AWS_CMD="aws"
+elif command -v aws.exe &> /dev/null; then
+  AWS_CMD="aws.exe"
+else
   echo "Error: AWS CLI is not installed. Please install it first."
   exit 1
 fi
 
 # Check AWS credentials
 echo "Checking AWS identity..."
-if ! aws sts get-caller-identity $AWS_CMD_PROFILE --region "$REGION"; then
+if ! $AWS_CMD sts get-caller-identity $AWS_CMD_PROFILE --region "$REGION"; then
   echo "Error: Failed to get AWS identity. Please check your credentials."
   exit 1
 fi
@@ -53,7 +58,7 @@ echo -e "\nChecking required AWS services..."
 
 # Check Security Hub
 echo "Checking Security Hub..."
-if aws securityhub get-enabled-standards $AWS_CMD_PROFILE --region "$REGION" &> /dev/null; then
+if $AWS_CMD securityhub get-enabled-standards $AWS_CMD_PROFILE --region "$REGION" &> /dev/null; then
   echo "✅ Security Hub is accessible"
 else
   echo "⚠️ Security Hub may not be enabled or accessible"
@@ -61,7 +66,7 @@ fi
 
 # Check IAM Access Analyzer
 echo "Checking IAM Access Analyzer..."
-if aws accessanalyzer list-analyzers $AWS_CMD_PROFILE --region "$REGION" &> /dev/null; then
+if $AWS_CMD accessanalyzer list-analyzers $AWS_CMD_PROFILE --region "$REGION" &> /dev/null; then
   echo "✅ IAM Access Analyzer is accessible"
 else
   echo "⚠️ IAM Access Analyzer may not be enabled or accessible"
@@ -69,7 +74,7 @@ fi
 
 # Check Amazon SES
 echo "Checking Amazon SES..."
-if aws ses get-send-quota $AWS_CMD_PROFILE --region "$REGION" &> /dev/null; then
+if $AWS_CMD ses get-send-quota $AWS_CMD_PROFILE --region "$REGION" &> /dev/null; then
   echo "✅ Amazon SES is accessible"
 else
   echo "⚠️ Amazon SES may not be enabled or accessible in this region"
@@ -77,7 +82,7 @@ fi
 
 # Check Amazon Bedrock
 echo "Checking Amazon Bedrock..."
-if aws bedrock list-foundation-models $AWS_CMD_PROFILE --region "$REGION" &> /dev/null; then
+if $AWS_CMD bedrock list-foundation-models $AWS_CMD_PROFILE --region "$REGION" &> /dev/null; then
   echo "✅ Amazon Bedrock is accessible"
 else
   echo "⚠️ Amazon Bedrock may not be enabled or accessible in this region"
