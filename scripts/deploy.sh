@@ -64,13 +64,18 @@ echo "Preparing deployment files..."
 rm -rf deployment
 mkdir -p deployment
 
-# Copy all Lambda files from src to deployment
-cp -r src/lambda/* deployment/
+# Copy all Lambda files from src to deployment, then strip compiled artifacts
+# so the zip is reproducible and doesn't bundle local interpreter state.
+cp -r src/lambda/. deployment/
+find deployment -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+find deployment -type f -name "*.pyc" -delete 2>/dev/null || true
 
-# Package Lambda function
+# Package Lambda function. Remove any stale zip first so `zip -r` does not
+# append to an existing archive (which produces a broken Lambda bundle).
 echo "Creating Lambda deployment package..."
+rm -f lambda_function.zip
 cd deployment
-zip -r ../lambda_function.zip .
+zip -r -X ../lambda_function.zip . >/dev/null
 cd ..
 
 # Create/Update the CloudFormation stack
@@ -82,6 +87,7 @@ aws cloudformation deploy \
     RecipientEmail="$EMAIL" \
     ScheduleExpression="$SCHEDULE" \
   --capabilities CAPABILITY_IAM \
+  --no-fail-on-empty-changeset \
   --region "$REGION" \
   $AWS_CMD_PROFILE
 

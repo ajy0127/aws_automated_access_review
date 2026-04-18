@@ -1,12 +1,15 @@
 # Runtime dependencies
-boto3>=1.28.0
+# boto3 1.34+ ships a stable bedrock-runtime client with the Anthropic Messages API.
+# The Lambda python3.11 runtime bundles its own boto3, so we leave the upper bound open.
+boto3>=1.34.0
 
 # Testing dependencies
 pytest>=7.3.1
 pytest-mock>=3.10.0
 pytest-cov>=4.0.0
 pytest-timeout>=2.0.0
-moto>=4.1.12
+# moto 5.x introduced breaking mock API changes; pin the floor so tests resolve the right version
+moto>=5.0.0
 
 # Code quality
 flake8>=6.0.0
