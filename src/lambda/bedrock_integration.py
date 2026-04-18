@@ -268,11 +268,13 @@ def invoke_claude_model(bedrock, prompt):
         "4. Compliance implications\n\n"
         "Format the report with clear headings and concise language."
     )
+    # Newer Claude models (Haiku 4.5, Sonnet 4.x, etc.) reject requests that
+    # set both temperature and top_p — pick one. We use temperature and omit
+    # top_p for broad compatibility across model generations.
     request_body = {
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 4096,
         "temperature": 0.7,
-        "top_p": 0.9,
         "system": system_message,
         "messages": [
             {
