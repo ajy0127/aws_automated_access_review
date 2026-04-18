@@ -1,0 +1,10 @@
+# Shell scripts must stay LF-only so bash/WSL can parse them on Windows.
+# Without this, a Windows clone with core.autocrlf=true rewrites scripts with
+# CRLF and they fail at runtime with: $'\r': command not found
+*.sh text eol=lf
+*.bash text eol=lf
+
+# PowerShell and batch are Windows-native, keep CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
