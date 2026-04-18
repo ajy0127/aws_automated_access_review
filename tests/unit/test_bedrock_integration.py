@@ -93,8 +93,10 @@ class TestClaudeModelIntegration(unittest.TestCase):
         self.assertIn("messages", body)
         self.assertNotIn("max_tokens_to_sample", body)
         self.assertNotIn("prompt", body)
-        # Default model ID should be a Claude 3.x variant
-        self.assertIn("claude-3", call_kwargs["modelId"])
+        # Default model ID should point at some Claude model. Exact ID changes
+        # as Bedrock retires versions, so just assert it's an Anthropic Claude.
+        self.assertIn("claude", call_kwargs["modelId"])
+        self.assertIn("anthropic", call_kwargs["modelId"])
 
 
 class TestNarrativeExtraction(unittest.TestCase):

@@ -7,6 +7,9 @@ REGION="us-east-1"  # Default region
 SCHEDULE="rate(30 days)"  # Default: run every 30 days
 EMAIL=""
 AWS_PROFILE=""  # AWS profile to use
+# Default Bedrock model; override with --bedrock-model when you want a different
+# Claude generation or region-specific inference profile.
+BEDROCK_MODEL_ID="us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -29,6 +32,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --profile)
       AWS_PROFILE="$2"
+      shift 2
+      ;;
+    --bedrock-model)
+      BEDROCK_MODEL_ID="$2"
       shift 2
       ;;
     *)
@@ -86,6 +93,7 @@ aws cloudformation deploy \
   --parameter-overrides \
     RecipientEmail="$EMAIL" \
     ScheduleExpression="$SCHEDULE" \
+    BedrockModelId="$BEDROCK_MODEL_ID" \
   --capabilities CAPABILITY_IAM \
   --no-fail-on-empty-changeset \
   --region "$REGION" \

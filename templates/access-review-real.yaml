@@ -26,6 +26,17 @@ Parameters:
     Default: ''
     Description: Name for the S3 bucket to store reports (leave blank for auto-generated name)
 
+  # Bedrock model ID for the AI narrative. Accepts direct model IDs (e.g.
+  # anthropic.claude-sonnet-4-5-20250929-v1:0) or cross-region inference profile
+  # IDs (e.g. us.anthropic.claude-haiku-4-5-20251001-v1:0). Retired models will
+  # cause a ResourceNotFoundException — update this parameter to a current model
+  # when the default is retired. See `aws bedrock list-foundation-models` and
+  # `aws bedrock list-inference-profiles` for what's available in your region.
+  BedrockModelId:
+    Type: String
+    Default: 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
+    Description: Bedrock model or inference profile ID used for the AI narrative
+
 # ----------------------------------------------------------
 # CONDITIONS
 # Logical conditions that control resource creation behavior
@@ -241,9 +252,12 @@ Resources:
         Variables:
           # The S3 bucket where reports will be stored
           REPORT_BUCKET: !Ref ReportBucket
-          
+
           # The email address where reports will be sent
           RECIPIENT_EMAIL: !Ref RecipientEmail
+
+          # Bedrock model ID or inference profile for the AI narrative
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
       
       # Initial code for the function - this is just a placeholder
       # The actual code will be uploaded separately after deployment
