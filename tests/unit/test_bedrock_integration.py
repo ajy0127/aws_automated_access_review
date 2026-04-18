@@ -66,9 +66,10 @@ class TestClaudeModelIntegration(unittest.TestCase):
         mock_bedrock = MagicMock()
         mock_boto3_client.return_value = mock_bedrock
 
-        # Mock the response from Bedrock
+        # Mock the response from Bedrock using the Messages API shape
         mock_response = {
-            "completion": "This is a test narrative.",
+            "content": [{"type": "text", "text": "This is a test narrative."}],
+            "stop_reason": "end_turn",
         }
         mock_bedrock.invoke_model.return_value = {
             "body": MagicMock(
@@ -84,15 +85,27 @@ class TestClaudeModelIntegration(unittest.TestCase):
         self.assertEqual(response, mock_response)
         mock_bedrock.invoke_model.assert_called_once()
 
+        # Verify the request body uses the Messages API, not legacy completion
+        call_kwargs = mock_bedrock.invoke_model.call_args.kwargs
+        body = json.loads(call_kwargs["body"])
+        self.assertEqual(body["anthropic_version"], "bedrock-2023-05-31")
+        self.assertEqual(body["max_tokens"], 4096)
+        self.assertIn("messages", body)
+        self.assertNotIn("max_tokens_to_sample", body)
+        self.assertNotIn("prompt", body)
+        # Default model ID should be a Claude 3.x variant
+        self.assertIn("claude-3", call_kwargs["modelId"])
+
 
 class TestNarrativeExtraction(unittest.TestCase):
     """Test the narrative extraction function."""
 
     def test_extract_narrative_claude(self):
-        """Test the extract_narrative_claude function."""
-        # Sample response from Claude model
+        """Test the extract_narrative_claude function with the Messages API shape."""
+        # Claude 3.x Messages API response
         response = {
-            "completion": "This is a test narrative.",
+            "content": [{"type": "text", "text": "This is a test narrative."}],
+            "stop_reason": "end_turn",
         }
 
         # Call the function
@@ -100,6 +113,14 @@ class TestNarrativeExtraction(unittest.TestCase):
 
         # Assertions
         self.assertEqual(narrative, "This is a test narrative.")
+
+    def test_extract_narrative_claude_legacy_completion(self):
+        """Back-compat: legacy text-completion responses still extract cleanly."""
+        response = {"completion": "Legacy narrative."}
+        self.assertEqual(
+            bedrock_integration.extract_narrative_claude(response),
+            "Legacy narrative.",
+        )
 
 
 class TestFallbackNarrative(unittest.TestCase):

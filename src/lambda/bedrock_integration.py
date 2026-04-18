@@ -22,6 +22,7 @@ Last Updated: 2025-04-01
 """
 
 import json  # For parsing and formatting API requests/responses
+import os  # For reading BEDROCK_MODEL_ID override
 import boto3  # AWS SDK for Python to interact with Amazon Bedrock
 
 
@@ -238,36 +239,43 @@ def invoke_claude_model(bedrock, prompt):
         - Max tokens: Limits response length (4096 provides detailed but concise analysis)
         - Top-p: Controls diversity of responses (0.9 is a balanced setting)
     """
-    # Step 1: Select model and set parameters
-    # Using Claude v2 for comprehensive text generation capabilities
-    model_id = "anthropic.claude-v2"  # Amazon Bedrock model identifier
+    # Step 1: Select model and set parameters.
+    # Claude v2 was retired on Bedrock; use the current Claude 3.5 Sonnet model ID.
+    # Override via the BEDROCK_MODEL_ID env var if the caller's region needs a different
+    # model (e.g. cross-region inference profile, different generation).
+    model_id = os.environ.get(
+        "BEDROCK_MODEL_ID", "anthropic.claude-3-5-sonnet-20240620-v1:0"
+    )
 
-    # Step 2: Construct the complete prompt with instructions
-    # The prompt follows Claude's required Human/Assistant format
-    # and includes specific instructions for security report generation
+    # Step 2: Build the Anthropic Messages API request body.
+    # Claude v2's text-completion format ("prompt" + "max_tokens_to_sample") is
+    # not accepted by Claude 3.x models — they require the messages schema.
+    system_message = (
+        "You are a cybersecurity expert analyzing AWS security findings. "
+        "Generate concise, professional security reports suitable for both "
+        "technical and non-technical stakeholders."
+    )
+    user_message = (
+        f"{prompt}\n\n"
+        "Your report should include:\n"
+        "1. An executive summary of the security posture\n"
+        "2. Analysis of the most critical findings\n"
+        "3. Clear, actionable recommendations\n"
+        "4. Compliance implications\n\n"
+        "Format the report with clear headings and concise language."
+    )
     request_body = {
-        "prompt": (
-            # Begin with Claude's expected format
-            "\n\nHuman: You are a cybersecurity expert analyzing AWS security findings. "
-            "Generate a concise, professional security report based on the following "
-            f"findings:\n\n{prompt}\n\n"
-            # Specific instructions for report structure
-            "Your report should include:\n"
-            "1. An executive summary of the security posture\n"
-            "2. Analysis of the most critical findings\n"
-            "3. Clear, actionable recommendations\n"
-            "4. Compliance implications\n\n"
-            # Style guidance for the report
-            "Format the report with clear headings and concise language suitable for both "
-            "technical and non-technical stakeholders.\n\n"
-            # Claude's expected assistant prefix
-            "Assistant: I'll analyze the findings and provide a comprehensive security "
-            "report.\n\n"
-        ),
-        # Model configuration parameters
-        "max_tokens_to_sample": 4096,  # Maximum response length (roughly 3000 words)
-        "temperature": 0.7,  # Balances creativity and consistency
-        "top_p": 0.9,  # Controls diversity of word selection
+        "anthropic_version": "bedrock-2023-05-31",
+        "max_tokens": 4096,
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "system": system_message,
+        "messages": [
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": user_message}],
+            }
+        ],
     }
 
     # Step 3: Call the Bedrock API
@@ -306,12 +314,17 @@ def extract_narrative_claude(response):
         process isn't blocked.
     """
     try:
-        # For Claude model, the generated text is in the "completion" field
-        # We strip any extra whitespace to ensure clean formatting
-        narrative = response.get("completion", "")
-
-        # Apply any additional formatting or post-processing here if needed
-        # For example, we might want to add a title, fix formatting issues, etc.
+        # Claude 3.x Messages API: the generated text is in
+        # response["content"][0]["text"]. Support the legacy "completion" field
+        # too so callers mocking the old shape keep working.
+        if "content" in response and isinstance(response["content"], list):
+            narrative = "".join(
+                block.get("text", "")
+                for block in response["content"]
+                if block.get("type") == "text"
+            )
+        else:
+            narrative = response.get("completion", "")
 
         return narrative.strip()
 
