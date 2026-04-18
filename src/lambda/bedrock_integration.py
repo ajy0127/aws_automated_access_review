@@ -240,11 +240,15 @@ def invoke_claude_model(bedrock, prompt):
         - Top-p: Controls diversity of responses (0.9 is a balanced setting)
     """
     # Step 1: Select model and set parameters.
-    # Claude v2 was retired on Bedrock; use the current Claude 3.5 Sonnet model ID.
-    # Override via the BEDROCK_MODEL_ID env var if the caller's region needs a different
-    # model (e.g. cross-region inference profile, different generation).
+    # Claude 3.5 Sonnet v1 (20240620) was retired on Bedrock; use the current
+    # Claude Haiku 4.5 via the US cross-region inference profile — Haiku 4.5
+    # requires an inference profile (on-demand InvokeModel of the bare model
+    # ID returns ValidationException) and is the lowest-cost option for this
+    # summary-generation workload.
+    # Override via BEDROCK_MODEL_ID for other regions/profiles (e.g.
+    # "global.anthropic.claude-haiku-4-5-20251001-v1:0" or a Sonnet profile).
     model_id = os.environ.get(
-        "BEDROCK_MODEL_ID", "anthropic.claude-3-5-sonnet-20240620-v1:0"
+        "BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0"
     )
 
     # Step 2: Build the Anthropic Messages API request body.

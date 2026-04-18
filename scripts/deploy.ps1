@@ -8,7 +8,8 @@ param(
     [string]$Schedule = "rate(30 days)",
     [Parameter(Mandatory = $true)]
     [string]$Email,
-    [string]$Profile = ""
+    [string]$Profile = "",
+    [string]$BedrockModelId = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 )
 
 $ErrorActionPreference = "Stop"
@@ -47,7 +48,7 @@ $deployArgs = @(
     "cloudformation", "deploy",
     "--template-file", "templates/access-review-real.yaml",
     "--stack-name", $StackName,
-    "--parameter-overrides", "RecipientEmail=$Email", "ScheduleExpression=$Schedule",
+    "--parameter-overrides", "RecipientEmail=$Email", "ScheduleExpression=$Schedule", "BedrockModelId=$BedrockModelId",
     "--capabilities", "CAPABILITY_IAM",
     "--no-fail-on-empty-changeset"
 ) + $awsCommonArgs
